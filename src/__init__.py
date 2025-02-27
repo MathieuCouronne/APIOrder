@@ -16,12 +16,10 @@ def create_app():
         app.config.from_object(TestConfig)
     else:
         app.config.from_object(Config)
-    # Initialisation de la base de données
 
     register_error_handlers(app)
 
 
-    # Définition des routes
     app.register_blueprint(api)
 
 

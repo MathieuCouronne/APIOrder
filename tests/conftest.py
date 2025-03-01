@@ -1,5 +1,5 @@
 import pytest
-from src import create_app  # Ta fonction pour créer l'app Flask
+from src import create_app
 from src.config import database
 from src.config.database import init_db, database
 from src.models.product import Product
@@ -13,12 +13,13 @@ def app():
     app.config['DATABASE'] = 'sqlite:///:memory:'
     app.config['TESTING'] = True
 
-    init_db()
-    fetch_and_store_products()
+    with app.app_context():
+        init_db()
+        fetch_and_store_products()
 
     yield app
 
-    with database.connection_context():  # Assure-toi qu'une connexion est active
+    with database.connection_context():
         database.drop_tables([Product, Order])
 
 @pytest.fixture

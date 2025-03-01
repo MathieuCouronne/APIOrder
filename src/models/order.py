@@ -15,10 +15,10 @@ class Order(BaseModel):
     total_price = FloatField(null=True, default=None)
     shipping_price = FloatField(null=True, default=None)
     email = CharField(null=True, default=None)
-    paid = BooleanField(default=False)  # La commande est payée ou non
+    paid = BooleanField(default=False)
 
-    shipping_information = TextField(null=True)  # Stocké en JSON
-    credit_card = TextField(null=True)  # Stocké en JSON
+    shipping_information = TextField(null=True)
+    credit_card = TextField(null=True)
 
     def get_shipping_information(self):
         try:

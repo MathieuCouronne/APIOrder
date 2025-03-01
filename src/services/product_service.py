@@ -12,11 +12,9 @@ def fetch_and_store_products():
             products = data.get("products", [])
 
             for p in products:
-                # Vérifier si le produit existe déjà
                 existing_product = Product.get_or_none(Product.id == p["id"])
 
                 if existing_product:
-                    # Mise à jour du produit existant
                     existing_product.name = p["name"]
                     existing_product.description = p["description"]
                     existing_product.price = p["price"]
@@ -26,7 +24,6 @@ def fetch_and_store_products():
                     existing_product.save()
                     print(f"Produit mis à jour : {existing_product.name}")
                 else:
-                    # Création d'un nouveau produit
                     Product.create(
                         id=p["id"],
                         name=p["name"],

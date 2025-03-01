@@ -1,5 +1,3 @@
-from idlelib.iomenu import errors
-
 from flask import Blueprint, request, jsonify
 from src.controllers.order_controller import create_order, get_order, update_order, process_payement
 from src.controllers.product_controller import get_all_products

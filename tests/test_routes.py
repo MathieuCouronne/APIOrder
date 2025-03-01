@@ -2,7 +2,7 @@ def test_home(client):
     response = client.get('/')
     assert response.status_code == 200
 
-def test_post_order_false(client):
+def test_post_order_wrong_id(client):
     response = client.post('/order', json={
         "product": {
                 "id": 123,
@@ -20,3 +20,7 @@ def test_post_order_right(client):
     })
     assert response.status_code == 302
     assert response.headers['Location'] == '/order/1'
+
+def test_post_order_nothing(client):
+    response = client.post('/order', json={})
+    assert response.status_code == 422

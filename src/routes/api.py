@@ -1,9 +1,16 @@
 from flask import Blueprint, request, jsonify
 from src.controllers.order_controller import create_order, get_order, update_order, process_payement
 from src.controllers.product_controller import get_all_products
+from flask import render_template
+from src.config.database import queue
+
 
 
 api = Blueprint("api", __name__)
+
+@api.route("/")
+def home():
+    return render_template("index.html")
 
 @api.route("/", methods=["GET"])
 def get_products():
@@ -34,5 +41,6 @@ def put_order(order_id):
             }
         }), 422
     if "credit_card" in data:
-        return process_payement(order_id, data["credit_card"])
+        job = queue.enqueue(process_payement, order_id, data["credit_card"])
+        return jsonify({"job_id": job.get_id(), "status": "queued"}), 202
     return update_order(order_id, data)

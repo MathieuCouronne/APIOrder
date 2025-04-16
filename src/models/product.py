@@ -1,4 +1,4 @@
-from peewee import Model, FloatField, CharField, BooleanField, IntegerField
+from peewee import Model, FloatField, CharField, BooleanField, AutoField
 from src.config.database import database
 
 
@@ -8,7 +8,7 @@ class BaseModel(Model):
 
 class Product(BaseModel):
     name = CharField()
-    id = IntegerField()
+    id = AutoField()
     in_stock = BooleanField()
     description = CharField()
     price = FloatField()

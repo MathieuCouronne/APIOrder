@@ -1,9 +1,12 @@
 from flask import jsonify
 import urllib.request
+import ssl
 from src.models.order import Order
 from src.models.product import Product
 from src.middlewares.error_handler import APIError
 import json
+
+from src.services.order_service import get_cached_order, cache_order
 
 
 def get_tax_rate(province):
@@ -50,9 +53,14 @@ def create_order(data):
 # Call with a Get request and an id as param
 
 def get_order(order_id):
+
+    cached_order = get_cached_order(order_id)
+    if cached_order:
+        return cached_order
+
     order = Order.get_or_none(Order.id == order_id)
     if order is None:
-        raise APIError("invalid-order", "Le order n'existe pas")
+        raise APIError("not-found", "Commande introuvable", status_code=404)
 
     order.total_price = order.quantity * order.product.price
 
@@ -69,7 +77,7 @@ def get_order(order_id):
             "credit_card": order.get_credit_card(),
             "shipping_information": order.get_shipping_information(),
             "paid": order.paid,
-            "transaction": {},
+            "transaction": order.get_transaction(),
             "product": {
                 "id": order.product.id,
                 "quantity": order.quantity
@@ -78,6 +86,8 @@ def get_order(order_id):
         }
     }
     order.save()
+    if order.paid:
+        cache_order(order_id, response_data)
     return jsonify(response_data)
 
 # Function to update the order with shipping info and mail
@@ -92,7 +102,6 @@ def update_order(order_id, data):
         raise APIError("missing-fields", "Il manque l'objet 'order' dans la requête", status_code=422)
 
     order_data = data["order"]
-
     required_fields = ["email", "shipping_information"]
     required_shipping_fields = ["country", "address", "postal_code", "city", "province"]
 
@@ -109,13 +118,13 @@ def update_order(order_id, data):
 
     #calcul total price with tax rate
     tax_rate = get_tax_rate(shipping_info["province"])
+    if order.total_price is None:
+        order.total_price = order.quantity * order.product.price
     order.total_price_tax = round(order.total_price * (1 + tax_rate), 2)
-
     order.email = order_data["email"]
     order.shipping_information = json.dumps(order_data["shipping_information"])
 
     order.save()
-
     return jsonify({
         "order": {
             "id": order.id,
@@ -149,26 +158,36 @@ def process_payement(order_id, data):
     if order.paid:
         raise APIError("already_paid", "La commande a déjà été payée", status_code=422)
 
+
+    if order.total_price_tax is None:
+        order.total_price_tax = (order.quantity * order.product.price) * get_tax_rate(
+            order.shipping_information["province"])
+
+    if order.shipping_price is None:
+        total_weight = order.quantity * order.product.weight
+        order.shipping_price = calculate_shipping_price(total_weight)
     payment_data = json.dumps({
         "credit_card": data,
         "amount_charged": order.total_price_tax + order.shipping_price,
     }).encode("utf-8")
 
-    print(payment_data)
+    context = ssl.create_default_context()
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_NONE
     req = urllib.request.Request("https://dimensweb.uqac.ca/~jgnault/shops/pay/", data=payment_data, headers={"Content-Type": "application/json"}, method="POST")
 
     try:
-        with urllib.request.urlopen(req) as response:
+        with urllib.request.urlopen(req, context=context) as response:
             payment_response = json.loads(response.read().decode())
-
-        if not payment_response.get("success", False):
+        if response.getcode() != 200:
             return jsonify({
-                "credit_card": {
-                    "code": "card-declined",
-                    "name": "La carte de crédit a été déclinée."
+                "errors": {
+                    "payment": {
+                        "code": "payment-error",
+                        "name": "Erreur lors du paiement, code HTTP inattendu."
+                    }
                 }
-            }), 422
-
+            }), response.getcode()
         order.paid = True
         order.credit_card = json.dumps({
             "name": data["name"],
@@ -177,11 +196,10 @@ def process_payement(order_id, data):
             "expiration_year": data["expiration_year"],
             "expiration_month": data["expiration_month"]
         })
-        order.transaction = json.dumps(payment_response)
 
+        order.transaction = json.dumps(payment_response["transaction"])
         order.save()
-
-        return jsonify({
+        response_data =  {
             "order": {
                 "id": order.id,
                 "shipping_information": json.loads(order.shipping_information),
@@ -197,10 +215,11 @@ def process_payement(order_id, data):
                 "transaction": json.loads(order.transaction),
                 "shipping_price": order.shipping_price
             }
-        }), 200
+        }
+        cache_order(order_id, response_data)
+        return response_data
 
     except urllib.error.HTTPError as e:
-
         return jsonify({
             "errors": {
                 "payment": {

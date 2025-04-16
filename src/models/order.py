@@ -1,4 +1,4 @@
-from peewee import Model, IntegerField, BooleanField, ForeignKeyField, FloatField, CharField, TextField
+from peewee import Model, AutoField, BooleanField, ForeignKeyField, FloatField, CharField, TextField, IntegerField
 from src.config.database import database
 from src.models.product import Product
 import json
@@ -8,7 +8,7 @@ class BaseModel(Model):
         database = database
 
 class Order(BaseModel):
-    id = IntegerField(primary_key=True)
+    id = AutoField()
     product = ForeignKeyField(Product, backref="orders")
     quantity = IntegerField()
     total_price_tax = FloatField(null=True, default=None)
@@ -18,6 +18,7 @@ class Order(BaseModel):
     paid = BooleanField(default=False)
 
     shipping_information = TextField(null=True)
+    transaction = TextField(null=True)
     credit_card = TextField(null=True)
 
     def get_shipping_information(self):
@@ -29,5 +30,11 @@ class Order(BaseModel):
     def get_credit_card(self):
         try:
             return json.loads(self.credit_card) if self.credit_card else {}
+        except json.JSONDecodeError:
+            return {}
+
+    def get_transaction(self):
+        try:
+            return json.loads(self.transaction) if self.transaction else {}
         except json.JSONDecodeError:
             return {}

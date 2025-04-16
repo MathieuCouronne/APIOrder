@@ -8,7 +8,7 @@ from flask_config import Config, TestConfig
 
 
 def create_app():
-    app = Flask(__name__)
+    app = Flask(__name__, template_folder="templates")
 
 
     env = os.getenv("FLASK_ENV", "development")

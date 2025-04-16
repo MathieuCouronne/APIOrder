@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Commande Boutique</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f5f5f5;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        form, .order-details {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        input, select, button {
+            display: block;
+            margin-top: 10px;
+            margin-bottom: 15px;
+            padding: 10px;
+            width: 100%;
+        }
+        .order-info {
+            background-color: #e6f7ff;
+            padding: 15px;
+            border-left: 4px solid #1890ff;
+        }
+    </style>
+</head>
+<body>
+    <h1>Créer une commande</h1>
+    <form id="createOrderForm">
+        <label>ID du produit:</label>
+        <input type="number" id="productId" required>
+
+        <label>Quantité:</label>
+        <input type="number" id="quantity" required>
+
+        <button type="submit">Créer la commande</button>
+    </form>
+
+    <h2>Ajouter les infos client</h2>
+    <form id="updateOrderForm">
+        <label>ID de la commande:</label>
+        <input type="number" id="orderIdUpdate" required>
+
+        <label>Email:</label>
+        <input type="email" id="email" required>
+
+        <label>Pays:</label>
+        <input type="text" id="country" required>
+
+        <label>Adresse:</label>
+        <input type="text" id="address" required>
+
+        <label>Code postal:</label>
+        <input type="text" id="postalCode" required>
+
+        <label>Ville:</label>
+        <input type="text" id="city" required>
+
+        <label>Province:</label>
+        <input type="text" id="province" required>
+
+        <button type="submit">Mettre à jour</button>
+    </form>
+
+    <h2>Payer une commande</h2>
+    <form id="payOrderForm">
+        <label>ID de la commande:</label>
+        <input type="number" id="orderIdPay" required>
+
+        <label>Nom sur la carte:</label>
+        <input type="text" id="cardName" required>
+
+        <label>Numéro de carte:</label>
+        <input type="text" id="cardNumber" required>
+
+        <label>Mois d'expiration:</label>
+        <input type="number" id="expirationMonth" required min="1" max="12">
+
+        <label>Année d'expiration:</label>
+        <input type="number" id="expirationYear" required min="2024">
+
+        <label>CVV:</label>
+        <input type="text" id="cvv" required>
+
+        <button type="submit">Payer</button>
+    </form>
+
+    <h2>Consulter une commande</h2>
+    <form id="getOrderForm">
+        <label>ID de la commande:</label>
+        <input type="number" id="orderIdGet" required>
+        <button type="submit">Rechercher</button>
+    </form>
+
+    <div class="order-details" id="orderDetails" style="display: none;">
+        <h3>Détails de la commande :</h3>
+        <pre class="order-info" id="orderContent"></pre>
+    </div>
+
+    <script>
+        document.getElementById('createOrderForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const productId = document.getElementById('productId').value;
+            const quantity = document.getElementById('quantity').value;
+
+            const res = await fetch('/order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ product: { id: parseInt(productId), quantity: parseInt(quantity) } })
+            });
+
+            if (res.status === 302) {
+                alert('Commande créée avec succès!');
+            } else {
+                const err = await res.json();
+                alert('Erreur: ' + JSON.stringify(err));
+            }
+        });
+
+        document.getElementById('updateOrderForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const orderId = document.getElementById('orderIdUpdate').value;
+
+            const body = {
+                order: {
+                    email: document.getElementById('email').value,
+                    shipping_information: {
+                        country: document.getElementById('country').value,
+                        address: document.getElementById('address').value,
+                        postal_code: document.getElementById('postalCode').value,
+                        city: document.getElementById('city').value,
+                        province: document.getElementById('province').value
+                    }
+                }
+            };
+
+            const res = await fetch(`/order/${orderId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            const json = await res.json();
+            alert(JSON.stringify(json));
+        });
+
+        document.getElementById('payOrderForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const orderId = document.getElementById('orderIdPay').value;
+
+            const creditCardData = {
+                name: document.getElementById('cardName').value,
+                number: document.getElementById('cardNumber').value,
+                expiration_month: parseInt(document.getElementById('expirationMonth').value),
+                expiration_year: parseInt(document.getElementById('expirationYear').value),
+                cvv: document.getElementById('cvv').value
+            };
+
+            const res = await fetch(`/order/${orderId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ credit_card: creditCardData })
+            });
+
+            const json = await res.json();
+            if (res.ok) {
+                alert("Paiement effectué !");
+            } else {
+                alert("Erreur de paiement : " + JSON.stringify(json));
+            }
+        });
+        document.getElementById('getOrderForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const orderId = document.getElementById('orderIdGet').value;
+
+            const res = await fetch(`/order/${orderId}`);
+            const data = await res.json();
+
+            document.getElementById('orderDetails').style.display = 'block';
+            document.getElementById('orderContent').textContent = JSON.stringify(data, null, 4);
+        });
+    </script>
+</body>
+</html>

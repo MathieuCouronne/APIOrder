@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from src.controllers.order_controller import create_order, get_order, update_order, process_payement
 from src.controllers.product_controller import get_all_products
+from src.middlewares.error_handler import APIError
 from flask import render_template
 from src.config.database import queue
 
@@ -10,7 +11,7 @@ api = Blueprint("api", __name__)
 
 @api.route("/")
 def home():
-    return render_template("index.html")
+    return render_template("create_order.html")
 
 @api.route("/", methods=["GET"])
 def get_products():
@@ -19,8 +20,21 @@ def get_products():
 
 @api.route("/order", methods=["POST"])
 def post_order():
-    data = request.get_json()
-    return create_order(data)
+    # Récupérer les données envoyées via le formulaire HTML classique
+    product_id = request.form.get('product_id')
+    quantity = request.form.get('quantity')
+
+    # Validation des données
+    if not product_id or not quantity:
+        raise APIError("missing-fields", "La création d'une commande nécessite un produit et une quantité")
+
+    try:
+        product_id = int(product_id)
+        quantity = int(quantity)
+    except ValueError:
+        raise APIError("invalid-data", "Les ID de produit et la quantité doivent être des nombres valides")
+
+    return create_order(product_id, quantity)
 
 @api.route("/order/<int:order_id>", methods=["GET"])
 def get_order_by_id(order_id):

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Commande Boutique{% endblock %}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f5f5f5;
+        }
+        nav {
+            margin-bottom: 30px;
+        }
+        nav form {
+            display: flex;
+            align-items: center;
+        }
+        nav input {
+            padding: 8px;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        nav button {
+            padding: 8px 16px;
+        }
+        .content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <form action="/order" method="get">
+            <input type="number" name="order_id" placeholder="ID de la commande" required>
+            <button type="submit">Voir la commande</button>
+        </form>
+    </nav>
+
+    <div class="content">
+        {% block content %}
+        {% endblock %}
+    </div>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Créer une commande</h1>
+<form id="createOrderForm" method="POST" action="/order">
+    <label for="productId">ID du produit:</label>
+    <input type="number" id="productId" name="product_id" required>
+
+    <label for="quantity">Quantité:</label>
+    <input type="number" id="quantity" name="quantity" required>
+
+    <button type="submit">Créer la commande</button>
+</form>
+{% endblock %}

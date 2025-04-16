@@ -1,4 +1,4 @@
-from flask import jsonify
+from flask import jsonify, redirect, url_for
 import urllib.request
 import ssl
 from src.models.order import Order
@@ -29,13 +29,7 @@ def calculate_shipping_price(total_weight):
 
 
 
-def create_order(data):
-    if "product" not in data or "id" not in data["product"] or "quantity" not in data["product"]:
-        raise APIError("missing-fields", "La création d'une commande nécessite un produit")
-
-    product_id = data["product"]["id"]
-    quantity = data["product"]["quantity"]
-
+def create_order(product_id, quantity):
     if quantity < 1:
         raise APIError("invalid-quantity", "La quantité doit être au moins de 1")
 
@@ -47,7 +41,8 @@ def create_order(data):
         raise APIError("out-of-inventory", "Le produit demandé n'est pas en inventaire")
 
     order = Order.create(product=product, quantity=quantity)
-    return "", 302, {"Location": f"/order/{order.id}"}
+    return redirect(url_for('shipping', order_id=order.id))  # Redirection vers la page de livraison
+
 
 # Function to get an order
 # Call with a Get request and an id as param
